@@ -1,38 +1,109 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[186]:
+# In[18]:
 
 
 # imports
+import time
 import pandas as pd
 import numpy as np
 import matplotlib as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
+import requests
+from bs4 import BeautifulSoup
+
+# Tweepy - Twitter API
+import tweepy as tw
+
+consumer_key = '3d36GklfJ1Vud6aG2CxZ4W5v0'
+consumer_secret = 'QwPZ3L1Ef2ozwMggSrjDMPon6GgREIwSUOX1bXvmZFxK4aIvNq'
+access_token = '1168946708274978816-nuiPdj6x6GziLDDujC1G3sjZOplGTJ'
+access_secret = 'dbAWyRYCk0FplAfjkmqKqnw8GHdfckPB5V5yEvE2LKLtL'
+
+auth = tw.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_secret)
+
+api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+import json
 
 
-# In[ ]:
+# In[3]:
 
 
 # variables
 
 
-
+# ### Gathering Data
 # #### Read data (3 sources: twitter file, image predictions, twitter api extra data)
 
-# In[18]:
+# In[4]:
 
 
 # Read data (3 sources: twitter file, image predictions, twitter api extra data)
 
 # Read data - twitter file (csv)
 df_twitter_file = pd.read_csv("twitter-archive-enhanced.csv")
+df_twitter_file.head(3)
+
+# List of twitter IDs
+list_tweet_id=df_twitter_file.tweet_id
+# list_tweet_id
 
 
-# #### Assess Data
+# In[5]:
+
+
+# Read data - image predictions from udacity's url: 
+# https://d17h27t6h515a5.cloudfront.net/topher/2017/August/599fd2ad_image-predictions/image-predictions.tsv
+
+url = 'https://d17h27t6h515a5.cloudfront.net/topher/2017/August/599fd2ad_image-predictions/image-predictions.tsv'
+response = requests.get(url)
+df_image_pred = pd.read_csv(url,sep='\t')
+# soup = BeautifulSoup(page_image_pred.content, 'html.parser')
+df_image_pred.head(5)
+
+
+# In[19]:
+
+
+# Read data - Tweet JSON
+# Store in txt file and read file into a DataFrame
+# https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+
+#Tracking how long this block takes to run
+start_time = time.time()
+
+#Extracting specific data from the API
+# full_text = tweet.full_text
+# favorite_count = tweet.favorite_count
+# retweet_count = tweet.retweet_count
+
+    
+# recreate the file each time the code is run
+with open('tweet_json.txt', 'w') as file:
+    # Loop through the list of tweet ids from the csv file, pull the twitter data via API, convert to JSON and write/append to file
+    count_deleted=0
+    for tid in list_tweet_id:
+        try:
+            tweet = api.get_status(tid,tweet_mode='extended')
+            tweet_json = json.dumps(tweet._json)
+            file.write(tweet_json + '\n')
+        except:
+            count_deleted +=1
+#             print(tid, "does not exist on Twitter, moving on to next Tweet ID from csv file...")
+
+
+print(str(count_deleted) + " tweed_id(s) from the CSV file could not be found on twitter")
+print("This block of code took ", time.time()-start_time)
+
+
+# ### Assess Data
 
 # ##### Summary of findings based on code below
 # 
+# ##### Twitter flat file
 # - After eyeballing the data, Col: name has dirty data e.g. "a" , "an", "the", etc. Asses and clean up
 # - could combine the dog stages into one column with a label but must ensure a row does not have two dog stages
 #      - Dog stages - looks like some dogs are in two stages - worth exploring to see if this is an error
@@ -46,7 +117,9 @@ df_twitter_file = pd.read_csv("twitter-archive-enhanced.csv")
 #             - removing duplicates 
 #             - removing non twitter urls
 #         Business must decide
-#     
+# 
+# ##### Image prediction file
+# 
 #  
 
 # In[46]:
