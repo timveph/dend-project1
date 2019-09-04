@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[18]:
+# In[92]:
 
 
 # imports
@@ -29,7 +29,7 @@ api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 import json
 
 
-# In[3]:
+# In[93]:
 
 
 # variables
@@ -38,7 +38,7 @@ import json
 # ### Gathering Data
 # #### Read data (3 sources: twitter file, image predictions, twitter api extra data)
 
-# In[4]:
+# In[94]:
 
 
 # Read data (3 sources: twitter file, image predictions, twitter api extra data)
@@ -52,7 +52,7 @@ list_tweet_id=df_twitter_file.tweet_id
 # list_tweet_id
 
 
-# In[5]:
+# In[95]:
 
 
 # Read data - image predictions from udacity's url: 
@@ -65,7 +65,7 @@ df_image_pred = pd.read_csv(url,sep='\t')
 df_image_pred.head(5)
 
 
-# In[19]:
+# In[96]:
 
 
 # Read data - Tweet JSON
@@ -82,21 +82,59 @@ start_time = time.time()
 
     
 # recreate the file each time the code is run
-with open('tweet_json.txt', 'w') as file:
+with open('tweet_json.txt', 'w', encoding='utf-8') as file:
     # Loop through the list of tweet ids from the csv file, pull the twitter data via API, convert to JSON and write/append to file
     count_deleted=0
     for tid in list_tweet_id:
         try:
             tweet = api.get_status(tid,tweet_mode='extended')
             tweet_json = json.dumps(tweet._json)
-            file.write(tweet_json + '\n')
+            file.write("\n" + tweet_json)
         except:
             count_deleted +=1
 #             print(tid, "does not exist on Twitter, moving on to next Tweet ID from csv file...")
 
+print("\n" + str(count_deleted) + " tweet_id(s) from the CSV file could not be found on twitter")
 
-print(str(count_deleted) + " tweed_id(s) from the CSV file could not be found on twitter")
-print("This block of code took ", time.time()-start_time)
+
+# Read the text file into a Data Frame keeping only certain columns
+
+df_list=[] #create a list to hold data as its read from the file
+
+with open("tweet_json.txt",'r', encoding='utf-8') as file:
+    line_number=0
+    while line_number <= sum(1 for line in open("tweet_json.txt",'r',encoding='utf-8')):
+        line_number+=1
+        line = file.readline()
+        # Get tweet_id but check it's there first
+        if line.find('"id":') != -1:
+            tweet_id = line[line.find('"id":')+len('"id": ')  : line.find(",", line.find('"id":'))]
+        else:
+            print("'id' not found")
+        # Get retweet_count but check it's there first
+        if line.find('"retweet_count":') != -1:
+            retweet_count = line[line.find('"retweet_count":')+len('"retweet_count": ') : line.find(",", line.find('"retweet_count":'))]
+        else:
+            print("'retweet_count not found")
+        # Get favorite_count but check it's there first
+        if line.find('"favorite_count":') != -1:
+            favorite_count = line[line.find('"favorite_count":')+len('"favorite_count": ') : line.find(",", line.find('"favorite_count":'))]
+        else:
+            print("'favorite_count not found")
+
+        # Append each entry from the JSON file to the list
+        df_list.append({'tweet_id':tweet_id,
+                        'retweet_count':retweet_count,
+                        'favorite_count':favorite_count})
+
+# Create data from from JSON file with specified columns
+df_json = pd.DataFrame(df_list, columns = ['tweet_id','retweet_count','favorite_count'])
+
+
+print("\n number of entries in data frame, including heading:", len(df_json))
+print("\n number of entries in the file", sum(1 for line in open("tweet_json.txt",'r',encoding='utf-8')))
+print()
+print("\n This block of code took ", (time.time()-start_time)/60)
 
 
 # ### Assess Data
