@@ -18,15 +18,15 @@ from bs4 import BeautifulSoup
 # Tweepy - Twitter API
 import tweepy as tw
 
-consumer_key = '3d36GklfJ1Vud6aG2CxZ4W5v0'
-consumer_secret = 'QwPZ3L1Ef2ozwMggSrjDMPon6GgREIwSUOX1bXvmZFxK4aIvNq'
-access_token = '1168946708274978816-nuiPdj6x6GziLDDujC1G3sjZOplGTJ'
-access_secret = 'dbAWyRYCk0FplAfjkmqKqnw8GHdfckPB5V5yEvE2LKLtL'
+# consumer_key = '3d36G'
+# consumer_secret = 'QwP'
+# access_token = '1168'
+# access_secret = 'db'
 
-auth = tw.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_secret)
+# auth = tw.OAuthHandler(consumer_key, consumer_secret)
+# auth.set_access_token(access_token, access_secret)
 
-api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+# api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 import json
 
@@ -70,7 +70,7 @@ df_image_pred = pd.read_csv(url,sep='\t')
 print("Number of records in image prediction file:",df_image_pred.tweet_id.count())
 
 
-# In[7]:
+# In[5]:
 
 
 df_image_pred.sample(5)
@@ -110,7 +110,7 @@ print()
 print("\n This block of code took ", (time.time()-start_time)/60)
 
 
-# In[5]:
+# In[6]:
 
 
 # Read the text file into a Data Frame keeping only certain columns
@@ -163,47 +163,42 @@ print("\n This block of code took ", (time.time()-start_time)/60)
 
 # ### Assess Data
 
-# ##### Summary of findings based on code below
-# 
+# #### Quality issues
 # ##### Twitter flat file
-# - (1) After eyeballing the data, Col: name has dirty data e.g. "a" , "an", "the", etc. Some names are set to "None"
+# - After eyeballing the data, Col: name has dirty data e.g. "a" , "an", "the", etc. Some names are set to "None"
 #     - col: name - set None to null?
-# - (A) combine the dog stages into one column with a label (doggo, floofer etc. into one column but must ensure a row does not have two dog stages
-#      - (8) very few dog stages have been identified, might be problem with the file - can write code to check if we can get more dog stages from col: text
-#      - Dog stages - looks like some dogs are in two stages - worth exploring to see if this is an error
+# - very few dog stages have been identified, might be problem with the file - can write code to check if we can get more dog stages from col: text
+#     - Dog stages - looks like some dogs are in two stages - worth exploring to see if this is an error
 #        On inspecting the source data i.e. the tweets, it doesn't look to be - people just quote two dog stages (i.e. they share a picture of their two dogs) and it get's recorded. 
-#        
-# - after running the below code, some expanded urls:
-#     - (2) not every entry has an url - when a photo is not uploaded - 59 (3) records identified without a url - this could be a reply or retweet without a picture
-#       - should not have a dog type or an entry in the image_pred file
-#     - (B) have more than one urls - this duplication is caused when a person uploads more than one photo in their tweet (Twitter allows up to 4 photos) or 
-#     - (3) they include a url to another site in their tweet. 
-#         - can clean this up by:
-#             - removing duplicates 
-#             - (3) removing non twitter urls or put in own column
-#     - (2) - some urls have videos only (you can only have 1 video per tweet)
-# 
-# - (4) col: Source - contains a full html tag
-# 
-# - (C) col: retweet_status_id - Contains ReTweets ids - indicates a retweet (RT - columns retweeted_status_id.notnull())
-# 
-# - (5) col: rating_Denominator - some denominators are not 10
-# - (6) col: rating_numerator - some numerators are extreme
+# - Col: expanded_urls
+#     - not every entry has an url - when a photo is not uploaded - 59 (3) records identified without a url - this could be a reply or retweet without a picture
+#     - have more than one urls - this duplication is caused when a person uploads more than one photo in their tweet (Twitter allows up to 4 photos) or 
+#     - they include a url to another site in their tweet.
+#     - some urls have videos only (you can only have 1 video per tweet)
+# - Column source contains a full html tag
+# - Column text contains html urls that are duplicates of the urls in the expanded url column
+# - File contains retweets - remove from file
+# - col: rating_Denominator - some denominators are not 10
+# - col: rating_numerator - some numerators are extreme
 #     - some information for both columns are captured incorrectly. For example, 786709082849828864 has a 9.75/10 rating. Another example is 810984652412424192 where the text includes "smiles 24/7" but was captured as a rating - no other rating info present. 
+# - col timestamp and retweet*timestamp is set to object
+# - tweet_id is set to integer
 # 
-# - (D) Col retweet* cols should be in their own data set
-# - (D) Col dog type and rating info in their own data set
-# 
-# - (E) col timestamp and retweet*timestamp is set to object
-# 
-# ##### Image prediction file
-# - (7) col: jpg_url contains duplicate images - most likely belonging to retweets. Identify retweets from the main Twitter file
-# - (9) remove records where a dog has not been identified
+# ##### image prediction file
+# - remove records where a dog has not been identified
+# - col: jpg_url contains duplicate images - most likely belonging to retweets. Identify retweets from the main Twitter file
+# - tweet_id is set to integer
 # 
 # ##### json file
-# - (F) col: retweet_count and favorite_count are string objects instead of integer
+# - col: retweet_count and favorite_count are string objects instead of integer
+# - tweet_is is set to integer
 
-# In[6]:
+# #### Tidy issues
+# 
+# - doggo, floofer, pupper, puppo columns in twitter_archive_enhanced.csv should be combined into a single column as this is one variable that identify stage of dog.
+# - Information about one type of observational unit (tweets) is spread across three different files/dataframes. So these three dataframes should be merged as they are part of the same observational unit.
+
+# In[8]:
 
 
 # Assess the 3 files
@@ -218,7 +213,7 @@ print("Twitter API data extraction file")
 df_json.info(null_counts=True)
 
 
-# In[7]:
+# In[10]:
 
 
 print("Number of missing expanded_URLS from the twitter file is:", df_twitter_file[df_twitter_file.expanded_urls.isnull()].tweet_id.count())
@@ -233,13 +228,13 @@ print("Number of tweets in the Twitter downloaded file that contains RTs:",df_tw
 # df_twitter_file[df_twitter_file.expanded_urls.isnull()]
 
 
-# In[8]:
+# In[11]:
 
 
 df_twitter_file.describe()
 
 
-# In[9]:
+# In[12]:
 
 
 df_image_pred.describe()
@@ -247,20 +242,20 @@ df_image_pred.sample(3)
 df_image_pred[df_image_pred.tweet_id == 862096992088072192]
 
 
-# In[10]:
+# In[13]:
 
 
 df_json.describe()
 
 
-# In[11]:
+# In[14]:
 
 
 df_twitter_file[df_twitter_file.tweet_id.duplicated()]
 #no duplicated ids
 
 
-# In[12]:
+# In[15]:
 
 
 df_image_pred[df_image_pred.tweet_id.duplicated()]
@@ -270,14 +265,14 @@ df_image_pred[df_image_pred.tweet_id.duplicated()]
 # df_twitter_file[df_twitter_file.tweet_id == 754874841593970688]
 
 
-# In[13]:
+# In[16]:
 
 
 df_json[df_json.tweet_id.duplicated()]
 #no duplicate ids
 
 
-# In[14]:
+# In[17]:
 
 
 df_twitter_file[df_twitter_file.in_reply_to_status_id.notnull()].sample(3)
@@ -285,7 +280,7 @@ df_twitter_file[df_twitter_file.in_reply_to_status_id.notnull()].sample(3)
 # SOME are valid with photos and without photos
 
 
-# In[15]:
+# In[18]:
 
 
 # df_twitter_file: Identify bad names
@@ -299,7 +294,7 @@ df_twitter_file[df_twitter_file['name'].str.contains('^[a-z]+')].name.unique()
 # change "None to NaN"
 
 
-# In[16]:
+# In[19]:
 
 
 # df_twitter_file.rating_denominator.value_counts()
@@ -312,13 +307,13 @@ df_twitter_file[df_twitter_file['rating_denominator'] != 10].groupby('rating_den
 # - By my understading: The denominators should all be ten
 #     - Solution: rebase all denominator values to 10? 
 
-# In[17]:
+# In[20]:
 
 
 df_twitter_file.rating_numerator.value_counts()
 
 
-# In[18]:
+# In[21]:
 
 
 df_twitter_file[df_twitter_file.rating_numerator >= 20].sample(3)
@@ -326,13 +321,13 @@ df_twitter_file[df_twitter_file.rating_numerator >= 20].sample(3)
 
 # - a few extreme values but majority of people keep a number below 20
 
-# In[19]:
+# In[22]:
 
 
 print("Checking if tweet_id is unique. Expecting 2,356 values, counting: ",df_twitter_file.tweet_id.value_counts().size)
 
 
-# In[20]:
+# In[23]:
 
 
 print("\n doggo")
@@ -345,7 +340,7 @@ print("\n puppo")
 print(df_twitter_file.puppo.value_counts())
 
 
-# In[21]:
+# In[24]:
 
 
 assess_dog_stages = df_twitter_file[['doggo','floofer','pupper','puppo']].drop_duplicates()
@@ -359,7 +354,7 @@ pd.set_option('display.max_colwidth',-1)
 df_twitter_file.expanded_urls[df_twitter_file['doggo']=='doggo'][df_twitter_file['pupper']=='pupper']
 
 
-# In[22]:
+# In[25]:
 
 
 # Checking col: expanded_urls 
@@ -395,7 +390,7 @@ print("number of rows with more than 1 twitter urls: ",df_urls[df_urls['comma_co
 # - drop retweet and reply columns
 # - Remove HTLM from text column
 
-# In[23]:
+# In[106]:
 
 
 #Copy the DataFrames - keeping the orginal data for comparison to the clean data later
@@ -407,26 +402,34 @@ dfc_json = df_json.copy()
 print("\ndfc_json - Total number of records before cleaning:",dfc_json.tweet_id.value_counts().size)
 
 
-# In[24]:
+# #### Clean
+# ##### Remove retweets and replies (such records are out of scope for this project)
+
+# In[107]:
 
 
+# code to remove retweets and replies
 # dfc_twitter_file: Remove tweets that are replies
 dfc_twitter_file = dfc_twitter_file[dfc_twitter_file.in_reply_to_status_id.isnull()]
 # dfc_twitter_file: Remove tweets that are retweets
 dfc_twitter_file = dfc_twitter_file[dfc_twitter_file.retweeted_status_id.isnull()]
 
+# Test
 # dfc_twitter_file: test removal of replies and retweets
 print("dfc_twitter_file: Are there any tweets that are replies?")
 print(dfc_twitter_file[dfc_twitter_file.in_reply_to_status_id.notnull()])
 print("\ndfc_twitter_file: Are there any tweets that are retweets?")
 print(dfc_twitter_file[dfc_twitter_file.retweeted_status_id.notnull()])
 
+
+# A statement to show how many records are left after removing replies and retweets from the file
 print("\ndfc_twitter_file: Total number of records after removing replies and retweets: ", dfc_twitter_file.tweet_id.value_counts().size)
 
 
-# In[25]:
+# In[108]:
 
 
+# Now that the records have been removed, we now need to remove the columns
 # dfc_twitter_file: drop replies and retweet columns
 # in_reply_to_status_id
 # in_reply_to_user_id
@@ -443,21 +446,28 @@ print("dfc_twitter_file: The number of columns in the file after they are droppe
 print("\ndfc_twitter_file: Total number of records after adding missing urls: ", dfc_twitter_file.tweet_id.value_counts().size)
 
 
-# In[26]:
+# In[109]:
 
 
+# Test - make sure visually that the columns have been removed
 # dfc_twitter_file: Visual check for dropped columns
 dfc_twitter_file.sample(3)
 
 
-# In[27]:
+# #### Clean
+# ##### Clean "bad names" - names were not captured correctly in the twitter file
+# It was observed that the 'bad names' all start with lowercase
 
+# In[110]:
+
+
+# code to identify bad names
 
 # dfc_twitter_file: Remove bad names
 print("A list of names starting with lowercase: ",dfc_twitter_file[dfc_twitter_file['name'].str.contains('^[a-z]+')].name.unique())
 
 
-# In[28]:
+# In[111]:
 
 
 # dfc_twitter_file: Identify bad names and replace with None
@@ -473,18 +483,27 @@ for name in bad_names:
     dfc_twitter_file.name = dfc_twitter_file.name.replace(name,"None")
 
 
-# In[29]:
+# In[112]:
 
 
+# test
 print("dfc_twitter_file: Total number of names set to 'None':",dfc_twitter_file[dfc_twitter_file['name']=='None'].name.count())
 
 print("\ndfc_twitter_file: Total number of records after adding missing urls: ", dfc_twitter_file.tweet_id.value_counts().size)
 
 
-# In[30]:
+# #### Clean
+# ##### Clean expanded_urls
+# - not every entry has an url - when a photo is not uploaded - 59 (3) records identified without a url - this could be a reply or retweet without a picture
+# - have more than one urls - this duplication is caused when a person uploads more than one photo in their tweet (Twitter allows up to 4 photos) or
+# - they include a url to another site in their tweet.
+# - some urls have videos only (you can only have 1 video per tweet)
+
+# In[113]:
 
 
-# DO NOT DELETE OR CHANGE EXPANDED_URLS 
+# Code
+# DO NOT DELETE OR CHANGE EXPANDED_URLS in the first instance
 # KEEP THE FIRST URL IN THE LIST
 # PUT NON-TWITTER URLS IN ANOTHER COLUMN
 # RECREATE ALL URLS TO POINT TO TWITTER USING THE TWEET ID IN A NEW COLUMN CALLED: TWITTER URL
@@ -504,42 +523,57 @@ dfc_twitter_file['twitter_url']=dfc_twitter_file[dfc_twitter_file.temp_url.str.s
 # remove video/1 or photo/n from url leaving url in format https://twitter.com/dog_rates/status/tweet_id
 dfc_twitter_file.twitter_url = dfc_twitter_file.twitter_url.str.slice(start=0, stop=len('https://twitter.com/dog_rates/status/')+18, step=1)
 
+# drop temporary column
 dfc_twitter_file.drop('temp_url',axis = 1, inplace=True)
 
 # dfc_twitter_file.info()
 
+# test new columns have been created
 dfc_twitter_file.sample(3)
 
 
-# In[31]:
+# In[114]:
 
 
+# code
 # dfc_twitter_file: Fill in missing URLs using the tweet_id
 print("dfc_twitter_file: The number of missing urls before fix: ", dfc_twitter_file.tweet_id.value_counts().size - dfc_twitter_file[dfc_twitter_file.twitter_url.notnull()].twitter_url.count())
 dfc_twitter_file.tweet_id.value_counts().size
 
 dfc_twitter_file["twitter_url"].fillna("https://twitter.com/dog_rates/status/"+dfc_twitter_file.tweet_id.apply(str), inplace = True)
 print(dfc_twitter_file[dfc_twitter_file.twitter_url.isnull()])
+
+# test - check for missing urls
 print("dfc_twitter_file: The number of missing urls after fix: ", dfc_twitter_file.tweet_id.value_counts().size - dfc_twitter_file[dfc_twitter_file.twitter_url.notnull()].twitter_url.count())
 print("\ndfc_twitter_file: Total number of records after adding missing urls: ", dfc_twitter_file.tweet_id.value_counts().size)
 
 
-# In[32]:
+# #### Clean
+# ##### Create a new column that identifies how many media files were included in each tweet
+# 
+
+# In[115]:
 
 
+# code
 # Count the number of Twitter URL's and store the number in a new column called photo_per_tweet
 
-print("The number of tweets with n photos:\n",dfc_twitter_file.expanded_urls.str.count("https://twitter.com/").value_counts())
+print("The number of tweets with n media files:\n",dfc_twitter_file.expanded_urls.str.count("https://twitter.com/").value_counts())
 dfc_twitter_file['photo_per_tweet'] = dfc_twitter_file.expanded_urls.str.count("https://twitter.com/")
-print("\nThe number of tweets with n photos in column photo_per_tweet:\n",dfc_twitter_file.photo_per_tweet.value_counts())
+print("\nThe number of tweets with n media files in column photo_per_tweet:\n",dfc_twitter_file.photo_per_tweet.value_counts())
 
 
 # dfc_twitter_file[dfc_twitter_file.tweet_id == 706153300320784384]
 
 
-# In[33]:
+# #### Tidy
+# ##### doggo, floofer, pupper, puppo columns in twitter_archive_enhanced.csv should be combined into a single column as this is one variable that identify stage of dog.
+# Please be aware that some tweets have multiple stages
+
+# In[116]:
 
 
+# code 
 # dfc_twitter_file: create a column for dog status (category type)
 # search the text for a list of dog stages
 # dfc_twitter_file.sample(15)
@@ -558,13 +592,26 @@ dfc_twitter_file.dog_stage = dfc_twitter_file.dog_stage.replace('pupper pupper',
 
 # df[df.dog_stage=='pupper, pupper, pupper']
 
+# test 
 dfc_twitter_file.copy().dog_stage.value_counts()
 # df.sample(10)
 # df.dog_stage.dtype
 # df.info()
 
 
-# In[34]:
+# #### Clean
+# ##### clean numerator and denominator rating columns
+# - col: rating_Denominator - some denominators are not 10
+# - col: rating_numerator - some numerators are extreme
+# - some information for both columns are captured incorrectly. For example, 786709082849828864 has a 9.75/10 rating. Another example is 810984652412424192 where the text includes "smiles 24/7" but was captured as a rating - no other rating info present.
+
+# In[117]:
+
+
+dfc_twitter_file[dfc_twitter_file.tweet_id == 883482846933004288]
+
+
+# In[118]:
 
 
 # dfc_twitter_file: fix the rating_denominator and numerator
@@ -573,45 +620,61 @@ dfc_twitter_file.rating_denominator.value_counts()
 # dfc_twitter_file[dfc_twitter_file.rating_denominator != 10]
 
 
-# In[35]:
+# In[119]:
 
 
 dfc_twitter_file.rating_numerator.value_counts()
 
 
-# In[36]:
+# In[120]:
+
+
+dfc_twitter_file.rating_denominator.value_counts()
+
+
+# In[121]:
 
 
 # dfc_twitter_file: fix the rating_denominator and numerator
 
+# code to clean numerator and denominator
+
+rating = dfc_twitter_file.text.str.extract('((?:\d+\.)?\d+)\/(\d+)', expand=True)
+rating.columns = ['rating_numerator', 'rating_denominator']
+dfc_twitter_file['rating_numerator'] = rating['rating_numerator'].astype(float)
+dfc_twitter_file['rating_denominator'] = rating['rating_denominator'].astype(float)
+
+
 # manual change ratings by reviewing the tweets
-dfc_twitter_file.loc[df.tweet_id == 740373189193256964, ['rating_numerator', 'rating_denominator']] = 14, 10
-dfc_twitter_file.loc[df.tweet_id == 722974582966214656, ['rating_numerator', 'rating_denominator']] = 13, 10
-dfc_twitter_file.loc[df.tweet_id == 722974582966214656, ['rating_numerator', 'rating_denominator']] = 13, 10
-dfc_twitter_file.loc[df.tweet_id == 716439118184652801, ['rating_numerator', 'rating_denominator']] = 11, 10
-dfc_twitter_file.loc[df.tweet_id == 682962037429899265, ['rating_numerator', 'rating_denominator']] = 10, 10
-dfc_twitter_file.loc[df.tweet_id == 666287406224695296, ['rating_numerator', 'rating_denominator']] = 9, 10
+# dfc_twitter_file.loc[df.tweet_id == 740373189193256964, ['rating_numerator', 'rating_denominator']] = 14, 10
+# dfc_twitter_file.loc[df.tweet_id == 722974582966214656, ['rating_numerator', 'rating_denominator']] = 13, 10
+# dfc_twitter_file.loc[df.tweet_id == 722974582966214656, ['rating_numerator', 'rating_denominator']] = 13, 10
+# dfc_twitter_file.loc[df.tweet_id == 716439118184652801, ['rating_numerator', 'rating_denominator']] = 11, 10
+# dfc_twitter_file.loc[df.tweet_id == 682962037429899265, ['rating_numerator', 'rating_denominator']] = 10, 10
+# dfc_twitter_file.loc[df.tweet_id == 666287406224695296, ['rating_numerator', 'rating_denominator']] = 9, 10
 # set this one to 10/10 as there was no rating
-dfc_twitter_file.loc[df.tweet_id == 810984652412424192, ['rating_numerator', 'rating_denominator']] = 10, 10
+# dfc_twitter_file.loc[df.tweet_id == 810984652412424192, ['rating_numerator', 'rating_denominator']] = 10, 10
 
 # For the remaining records with a denominator not set to 10, programmatically fix - base denominator to 10 and rebase numerator
 dfc_twitter_file['rating_numerator'] = dfc_twitter_file.loc[dfc_twitter_file['rating_denominator'] > 10, 'rating_numerator'] = dfc_twitter_file.rating_numerator / (dfc_twitter_file.rating_denominator / 10)
 # changes denominator (do this after changing numerator)
 dfc_twitter_file['rating_denominator'] = dfc_twitter_file.loc[dfc_twitter_file['rating_denominator'] > 10, 'rating_denominator'] = dfc_twitter_file.rating_denominator / (dfc_twitter_file.rating_denominator / 10)
 
-
+# test denominator
 dfc_twitter_file.rating_denominator.value_counts()
 
 
-# In[37]:
+# In[122]:
 
 
+# test numerator
 dfc_twitter_file.rating_numerator.value_counts()
 
 
-# In[38]:
+# In[123]:
 
 
+# test - look for records that don't have a denominator of 10
 # dfc_twitter_file[dfc_twitter_file.rating_denominator != 10]
 dfc_twitter_file[dfc_twitter_file.rating_denominator != 10]
 
@@ -622,7 +685,14 @@ dfc_twitter_file[dfc_twitter_file.rating_denominator != 10]
 
 
 
-# In[39]:
+# #### Clean
+# ##### Change data types
+# - Change tweet_id to object
+# - timestamp to datetime
+# - photo_per_tweet to integer
+# - rating_denominator to integer
+
+# In[124]:
 
 
 # dfc_twitter_file: change numeric objects (timestamp) to integers/date in the various tables 
@@ -630,66 +700,80 @@ print("Check to see the column data types before they are changed accordingly\n"
 print(dfc_twitter_file.dtypes)
 
 
-# In[40]:
+# In[125]:
 
 
+#code 
+# change tweet_id to object
+dfc_twitter_file['tweet_id'] = dfc_twitter_file.tweet_id.astype(np.object)
 # Change timestamp to datetime
 dfc_twitter_file['timestamp'] = pd.to_datetime(dfc_twitter_file['timestamp'])
 # change photo_per_tweet from float to int8 (save memory) and also fill any missing values as 0
 dfc_twitter_file['photo_per_tweet'] = dfc_twitter_file['photo_per_tweet'].fillna(0).astype(np.int8)
 # change rating columns 
-dfc_twitter_file.rating_numerator = dfc_twitter_file.rating_numerator.astype(np.int64)
+# dfc_twitter_file.rating_numerator = dfc_twitter_file.rating_numerator.astype(np.int64)
 dfc_twitter_file.rating_denominator = dfc_twitter_file.rating_denominator.astype(np.int64)
 
 # dfc_twitter_file.sample(5)
 
+#test 
 # A print out of the dataframe info to see what has changed 
 print("Check to see if the column data types have changed accordingly")
 print(dfc_twitter_file.dtypes)
 
 
-# In[41]:
+# In[126]:
 
 
-dfc_twitter_file.rating_numerator.value_counts()
-dfc_twitter_file[dfc_twitter_file.rating_numerator < 0]
+# dfc_twitter_file.rating_numerator.value_counts()
+# dfc_twitter_file[dfc_twitter_file.rating_numerator < 0]
 
 
-# In[42]:
+# In[127]:
 
 
-dfc_twitter_file.rating_denominator.value_counts()
+# dfc_twitter_file.rating_denominator.value_counts()
 
 
-# In[43]:
+# #### Clean
+# #####  remove html tags from "source" column
+# 
+
+# In[128]:
 
 
+# code to assess what we are dealing with
 # dfc_twitter_file
 # Clean the source column removing HTML tags
 
 print("List of unique values in source column before removing html tags:\n",dfc_twitter_file.source.unique())
 
 
-# In[44]:
+# In[129]:
 
 
+# code to remove html tags and keep just the text
 # Use of Beautiful soup and lambda to remove html tags from source column
 dfc_twitter_file['source'] = dfc_twitter_file.source.apply(lambda x: BeautifulSoup(x,'lxml').get_text())
 
-
+#test
 print("List of unique values in source column after removing html tags:\n",dfc_twitter_file.source.unique())
 print()
 dfc_twitter_file.sample(3)
 
 
-# In[45]:
+# #### Clean
+# ##### remove html urls (short urls) from "text" column
+
+# In[130]:
 
 
-# Remove HTLM from text column
+# code to Remove HTLM urls from text column
 # Info on t.co's way of shortening: https://help.twitter.com/en/using-twitter/how-to-tweet-a-link
 # Each shortened link will be 23 characters long no matter if the original is longer or shorter
 dfc_twitter_file['text'] = dfc_twitter_file['text'].replace(r'http\S+', '', regex=True).replace(r'www\S+', '', regex=True)
 
+# test
 dfc_twitter_file.sample(3)
 
 
@@ -699,7 +783,10 @@ dfc_twitter_file.sample(3)
 
 
 
-# In[46]:
+# #### Clean
+# #####  remove records without photos
+
+# In[131]:
 
 
 #dfc_twitter_file
@@ -710,45 +797,55 @@ dfc_twitter_file.sample(3)
 print("The shape of the data before records with no photos are removed:",dfc_twitter_file.shape)
 
 
-# In[47]:
+# In[132]:
 
 
+# code 
 # Count after removing records without photos
 
 dfc_twitter_file = dfc_twitter_file[dfc_twitter_file.photo_per_tweet > 0]
+
+# test
 print("The shape of the data after records with no photos are removed:",dfc_twitter_file.shape)
 
 
-# In[48]:
+# #### Clean
+# #####  remove columns  no longer needed
+# 
+
+# In[133]:
 
 
-# drop the doggo, floofer, pupper, puppo, expanded_urls columns
+# drop the 'doggo','floofer','pupper','puppo','expanded_urls'
 
 print("The shape of the data before columns are removed:",dfc_twitter_file.shape)
+dfc_twitter_file.dtypes
 
 
-# In[49]:
+# In[134]:
 
 
+# code 
 # drop columns not needed
 
 dfc_twitter_file.drop(columns=['doggo','floofer','pupper','puppo','expanded_urls'], inplace=True)
 
+# test
 print("The shape of the data after columns are removed:",dfc_twitter_file.shape)
 
 dfc_twitter_file.info()
 
 
-# In[50]:
+# In[135]:
 
 
 #dfc_twitter_file: reorder the columns
 
-print("Column order before\n")
-dfc_twitter_file.info()
+# print("Column order before\n")
+# dfc_twitter_file.info()
 
 
-# In[51]:
+# In[136]:
 
 
 # get a list of tweet_ids
@@ -763,8 +860,9 @@ s_tweet_ids.shape
 # - Remove retweets (use (retweet) tweet_id list from twitter file)
 # - Restructure file (p1, p2, etc.)
 # - Exclude records where no picture has been identified as a dog
+# - change tweet_id to object
 
-# In[52]:
+# In[137]:
 
 
 # image_pred: 
@@ -779,15 +877,20 @@ dfc_image_pred.sample(5)
 dfc_image_pred.shape
 
 
-# In[53]:
+# In[138]:
 
 
 dfc_image_pred[dfc_image_pred.tweet_id == 666020888022790149].head(5)
 
 
-# In[54]:
+# #### Clean
+# #####  resturcture the file image_pred 
+# values are being used as columns names e.g. p1, p1_conf, p1_dog etc.
+
+# In[139]:
 
 
+# code
 # df_image_pred - restructure the file
 # p1 to p3 into one column for type and rating and boolean 
 df_backup = dfc_image_pred.copy()
@@ -836,30 +939,40 @@ dfc_image_pred= pd.merge(df_new,df3, how='left'
 # df.dtypes
 
 
-# In[55]:
+# In[140]:
 
 
+# test
 # df1[df1.tweet_id==666020888022790149].head(10)
 dfc_image_pred.tail(10)
 # df_image.shape
 
 
-# In[56]:
+# #### Clean
+# #####  remove records where no dog was identified
+
+# In[141]:
 
 
 # dfc_image_pred: remove all records that are not dogs i.e. is_dog = False
 print("Number of records by variable 'is_dog':\n",dfc_image_pred.is_dog.value_counts())
 
 
-# In[57]:
+# In[142]:
 
 
+# code
 # dfc_image_pred: remove all records that are not dogs i.e. is_dog = False
 dfc_image_pred = dfc_image_pred[dfc_image_pred.is_dog != False]
+
+# test
 print("Number of records by variable 'is_dog':\n",dfc_image_pred.is_dog.value_counts())
 
 
-# In[58]:
+# #### Clean
+# #####  Keep only the tweets that appear in the main twitter file
+
+# In[143]:
 
 
 # dfc_twitter_file: Keep only the list of tweets from the twitter file
@@ -868,18 +981,32 @@ print("Number of records by variable 'is_dog':\n",dfc_image_pred.is_dog.value_co
 print("Number of rows currently in the data before we remove the non essential rows:",dfc_image_pred.shape)
 
 
-# In[59]:
+# In[144]:
 
 
+# code
 # dfc_twitter_file: Keep only the list of tweets from the twitter file
 dfc_image_pred= dfc_image_pred[dfc_image_pred.tweet_id.isin(s_tweet_ids)]
 
+# test
 print("Number of rows after we keep only the tweet ids that match what we have in the twitter file:",dfc_image_pred.shape)
 
 
-# In[60]:
+# #### Clean
+# #####  change tweet_id to object
+
+# In[145]:
 
 
+# code
+# change tweet_id to object
+dfc_image_pred['tweet_id'] = dfc_image_pred.tweet_id.astype(np.object)
+
+
+# In[146]:
+
+
+# test
 # check the types of the dfc_image_pred dataframe
 dfc_image_pred.dtypes
 
@@ -892,7 +1019,7 @@ dfc_image_pred.dtypes
 # - Change the *_count columns to integers from objects & the tweet_id col to integer
 # - Move count columns to the twitter file dataframe
 
-# In[61]:
+# In[147]:
 
 
 print("Shape of the json data:\n",dfc_json.shape)
@@ -900,12 +1027,18 @@ print("Shape of the json data:\n",dfc_json.shape)
 dfc_json.dtypes
 
 
-# In[62]:
+# #### Clean
+# #####  change dtypes
+# - tweet_id = object
+# - retweet_count = int
+# - favorite_count = int
+
+# In[253]:
 
 
 # Change data types of dfc_json file
 
-dfc_json.tweet_id = dfc_json.tweet_id.astype(np.int64)
+dfc_json.tweet_id = dfc_json.tweet_id.astype(np.object)
 dfc_json.retweet_count = dfc_json.retweet_count.astype(np.int64)
 dfc_json.favorite_count = dfc_json.favorite_count.astype(np.int64)
 
@@ -914,91 +1047,183 @@ print("Data types after the change:\n")
 dfc_json.dtypes
 
 
-# In[63]:
+# In[254]:
+
+
+dfc_json.info()
+dfc_json.sample(3)
+
+
+# #### Clean
+# #####  Keep only the tweets that appear in the main twitter file
+
+# In[192]:
 
 
 # dfc_json: Keep only the list of tweets from the twitter file
-print("Number of rows before we keep only the tweet ids that match what we have in the twitter file:",dfc_json.shape)
+# print("Number of rows before we keep only the tweet ids that match what we have in the twitter file:",dfc_json.shape)
 
-dfc_json= dfc_json[dfc_json.tweet_id.isin(s_tweet_ids)]
+# dfc_json1= dfc_json[dfc_json.tweet_id.isin(s_tweet_ids)]
 
-print("Number of rows after we keep only the tweet ids that match what we have in the twitter file:",dfc_json.shape)
+# print("Number of rows after we keep only the tweet ids that match what we have in the twitter file:",dfc_json1.shape)
+
+# This will be taken care of during the join
 
 
 # ### Clean data
 
 # ##### twitter_file
 # - add columns from json file to main twitter_file (use fillna to fill in missing values)
+# - add columns from image pred file to main twitter_file (use fillna to fill in missing values)
 # 
 
-# In[64]:
+# In[234]:
 
 
+dfc_json.dtypes
+dfc_twitter_file.dtypes
+
+
+# In[262]:
+
+
+# df1 = pd.concat([dfc_twitter_file, dfc_json], axis=1, join='inner')
+# dfc_twitter_file.tweet_id.dtype
+# dfc_json.tweet_id.dtype
+df_t = dfc_twitter_file.copy()
+df_t.set_index('tweet_id')
+df_t.info()
+df_i = dfc_image_pred.copy()
+df_i.set_index('tweet_id')
+df_i.info()
+df_j = dfc_json.copy()
+df_j.set_index('tweet_id')
+df_j.info()
+
+# df_t.join([df_i,df_j]).info()
+
+df = pd.concat([df_t,df_i,df_j], axis=1, join='inner')
+
+
+# In[283]:
+
+
+df.sample(4)
+
+
+# In[263]:
+
+
+# Join data from image_pred df to twitter_file df
+
+# print("Number of columns on the twitter_file dataframe before adding two more:\n",dfc_twitter_file.shape)
+# df1= pd.merge(dfc_twitter_file,dfc_json, how='left'
+#                  , on='tweet_id'
+#                 ).sort_values('tweet_id')
+
+# df1.info()
+
+
+# In[ ]:
+
+
+
+
+
+# In[264]:
+
+
+# df1.info()
+
+
+# In[ ]:
+
+
+
+
+
+# In[266]:
+
+
+# code
 # Join data from json df to twitter_file df
 
-print("Number of columns on the twitter_file dataframe before adding two more:\n",dfc_twitter_file.shape)
-df= pd.merge(dfc_twitter_file,dfc_json, how='left'
-                 , on='tweet_id'
-                ).sort_values('tweet_id')
+# print("Number of columns on the twitter_file dataframe before adding two more:\n",dfc_twitter_file.shape)
+# df= pd.merge(df1,dfc_json, how='left'
+#                  , on='tweet_id'
+#                 ).sort_values('tweet_id')
 
-print("Number of missing retweet counts:",df.retweet_count.isnull().sum())
-print("Number of missing favourite counts:",df.favorite_count.isnull().sum())
+# print("Number of missing retweet counts:",df.retweet_count.isnull().sum())
+# print("Number of missing favourite counts:",df.favorite_count.isnull().sum())
 
 
-# In[65]:
+# In[267]:
 
 
 # Fill in missing values using mean
-df.retweet_count = df.retweet_count.fillna(df.retweet_count.mean())
-df.favorite_count = df.favorite_count.fillna(df.favorite_count.mean())
+# df.retweet_count = df.retweet_count.fillna(df.retweet_count.mean())
+# df.favorite_count = df.favorite_count.fillna(df.favorite_count.mean())
 
-print("Number of missing retweet counts:",df.retweet_count.isnull().sum())
-print("Number of missing favourite counts:",df.favorite_count.isnull().sum())
-
-
-# In[66]:
+# # test
+# print("Number of missing retweet counts:",df.retweet_count.isnull().sum())
+# print("Number of missing favourite counts:",df.favorite_count.isnull().sum())
 
 
-df.dtypes
+# In[268]:
 
 
-# In[67]:
+# df.info()
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[265]:
 
 
 # change data type of the two columns added
 
 
-df.retweet_count = df.retweet_count.astype(np.int64).fillna(df.mean())
-df.favorite_count = df.favorite_count.astype(np.int64).fillna(df.mean())
+# df.retweet_count = df.retweet_count.astype(np.int64).fillna(df.mean())
+# df.favorite_count = df.favorite_count.astype(np.int64).fillna(df.mean())
 
-df.dtypes
+# df.dtypes
 
 
 # ### Store
 
-# In[68]:
+# In[290]:
 
 
 # store the clean DataFrame(s) in a CSV file with the main one named twitter_archive_master.csv
 df.to_csv('twitter_archive_master.csv')
 
 
-# In[69]:
+# In[72]:
 
 
 # store the image prediction data in a csv file
-dfc_image_pred.to_csv('image_prediction_data.csv')
+# dfc_image_pred.to_csv('image_prediction_data.csv')
 
 
 # ### Analysis
 
-# In[70]:
+# In[285]:
 
 
 print("The tweets analysed take place between", df['timestamp'].min(),"and",df['timestamp'].max())
 
 
-# In[71]:
+# In[269]:
 
 
 # number of tweets by month
@@ -1009,7 +1234,7 @@ df['timestamp'].groupby([df.timestamp.dt.year.rename('year'), df.timestamp.dt.mo
 # Looking at the above cell, it would seem that interest in WeRateDogs was higher in 2015, and since then until August 2017, interest has been waining. We see a sharp drop between 2015-12 and 2016-01 followed by another sharp drop from 2016-03 to 2016-04. Since 2016-04 the number of tweets per month ave been steady. 
 # 
 
-# In[72]:
+# In[270]:
 
 
 # The hour of day that tweets happen (Visual)
@@ -1019,7 +1244,7 @@ df['timestamp'].groupby([df.timestamp.dt.hour.rename('hour of day')]).agg('count
 # - it would seem that tweeting in the early hours of the morning is very popular - maybe people review their dog pictures and before going to sleep they tweet
 # - strangley, no tweet's take place between 7am to 1pm
 
-# In[73]:
+# In[271]:
 
 
 # how many people identify their type of dog
@@ -1028,7 +1253,7 @@ ds_percent = 1 - df[df.dog_stage==''].dog_stage.agg('count') / df.shape[0]
 print("Only",'{:.1%}'.format(ds_percent),"tweets identify the stage their dog is in")
 
 
-# In[74]:
+# In[272]:
 
 
 print('Total tweets:','{:,}'.format(df.shape[0]))
@@ -1042,7 +1267,7 @@ print('Total favourite count:', '{:,}'.format(df['favorite_count'].sum()))
 
 # ### Visualisation
 
-# In[173]:
+# In[273]:
 
 
 import matplotlib.pyplot as plt
@@ -1078,7 +1303,33 @@ plt.show()
 # df_by_name
 
 
-# In[211]:
+# In[275]:
+
+
+# dfc_image_pred.head(5)
+
+
+# In[276]:
+
+
+# dfip = dfc_image_pred.copy()
+# dfip.dtypes
+
+
+# In[277]:
+
+
+print("chart: number of retweets and favoutires based on type of dog")
+df_type = df[df.confidence_of_prediction > 0.9]
+
+df_type = df_type.loc[:,['tweet_id','dog_type','confidence_of_prediction']]
+
+df_type.sample(3)
+df_type.dog_type.value_counts().sum()
+# df_type.dtypes
+
+
+# In[278]:
 
 
 # random checks/analysis
@@ -1102,24 +1353,24 @@ print(df_photo_rc)
 
 
 
-# In[174]:
+# In[286]:
 
 
-df_by_name.dtypes
+df.dtypes
 
 
 # - Retweets and Favourite counts tend to follow a pattern
 
-# In[175]:
+# In[289]:
 
 
 # A word cloud of words in the tweets
-text = df.text.values
+text = df.dog_type.values
 
 wordcloud = WordCloud(
-    width = 3000,
-    height = 2000,
-    background_color = 'black',
+    width = 1000,
+    height = 10000,
+    background_color = 'white',
     stopwords = STOPWORDS).generate(str(text))
 fig = plt.figure(
     figsize = (40, 30),
@@ -1131,13 +1382,13 @@ plt.tight_layout(pad=0)
 plt.show()
 
 
-# In[176]:
+# In[284]:
 
 
 # A word cloud of words in the tweets
 text = pd.read_csv('twitter_archive_master.csv', usecols=['text'])
 
-wordcloud = WordCloud(width = 3000,
+wordcloud = WordCloud(width = 9000,
     height = 2000,
     background_color = 'black',
     stopwords = STOPWORDS).generate(' '.join(text['text']))
@@ -1151,7 +1402,7 @@ plt.tight_layout(pad=0)
 plt.show()
 
 
-# In[177]:
+# In[281]:
 
 
 # A word cloud of words for the dog names
@@ -1172,11 +1423,17 @@ plt.tight_layout(pad=0)
 plt.show()
 
 
-# In[190]:
+# In[282]:
 
 
 
 df.dtypes
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
